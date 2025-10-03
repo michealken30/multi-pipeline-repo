@@ -1,0 +1,67 @@
+name: Reusable Java Build Workflow
+
+on:
+  workflow_call:
+    inputs:
+      repo:
+        description: "The repository containing the Java app"
+        required: true
+        type: string
+      path:
+        description: "Relative path to the Java app inside the repo"
+        required: true
+        type: string
+      main_class:
+        description: "Fully qualified main class to run (e.g. com.example.Main or HelloWorld)"
+        required: true
+        type: string
+      image_name:
+        description: "Name of the Docker image to build"
+        required: true
+        type: string
+      push:
+        description: "Whether to push the image to registry (true/false)"
+        required: false
+        default: "false"
+        type: string
+
+jobs:
+  build-java:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout external repo containing Java app
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.repo }}
+          path: app-repo
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'\
+
+      - name: Compile Java sources
+        working-directory: app-repo/${{ inputs.path }}
+        run: |
+          mkdir -p out
+          find . -name "*.java" > sources.txt
+          javac -d out @sources.txt
+
+      - name: Build Docker image
+        working-directory: app-repo/${{ inputs.path }}
+        run: |
+          cat <<EOF > Dockerfile
+          FROM openjdk:17-jdk-slim
+          COPY out /app
+          WORKDIR /app
+          CMD ["java", "${{ inputs.main_class }}"]
+          EOF
+          docker build -t ${{ inputs.image_name }} .
+
+      - name: Push Docker image
+        if: ${{ inputs.push == 'true' }}
+        run: |
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+          docker push ${{ inputs.image_name }}

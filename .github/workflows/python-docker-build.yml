@@ -1,0 +1,51 @@
+name: Reusable Python Docker Build Workflow
+
+on:
+  workflow_call:
+    inputs:
+      repo:
+        description: "The repository containing the Python app"
+        required: true
+        type: string
+      path:
+        description: "Relative path to the Python app inside the repo"
+        required: true
+        type: string
+      image_name:
+        description: "Name of the Docker image to build"
+        required: true
+        type: string
+      push:
+        description: "Whether to push the image to registry (true/false)"
+        required: false
+        default: "false"
+        type: string
+
+jobs:
+  build-python-docker:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout external repo containing Python app
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.repo }}
+          path: app-repo
+
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        working-directory: app-repo/${{ inputs.path }}
+        run: |
+          echo "FROM python:3.10-slim" > Dockerfile
+          echo "WORKDIR /app" >> Dockerfile
+          echo "COPY . ." >> Dockerfile
+          echo "CMD [\"python\", \"hello.py\"]" >> Dockerfile
+          docker build -t ${{ inputs.image_name }} .
+
+      - name: Push Docker image
+        if: ${{ inputs.push == 'true' }}
+        run: |
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+          docker push ${{ inputs.image_name }}
