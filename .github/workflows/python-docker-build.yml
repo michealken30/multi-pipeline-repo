@@ -17,7 +17,7 @@ on:
         type: string
       push:
         description: "Whether to push the image to registry (true/false)"
-        required: false
+        required: true
         default: "false"
         type: string
 
