@@ -23,9 +23,9 @@ on:
 
     secrets:
       DOCKER_USERNAME:
-        required: false
+        required: true
       DOCKER_PASSWORD:
-        required: false
+        required: true
 
 jobs:
   build-python-docker:
