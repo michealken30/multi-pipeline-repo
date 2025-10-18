@@ -121,11 +121,19 @@ jobs:
       - name: Build Docker image
         working-directory: app-repo/${{ inputs.path }}
         run: |
-          echo "FROM python:3.10-slim" > Dockerfile
-          echo "WORKDIR /app" >> Dockerfile
-          echo "COPY . ." >> Dockerfile
-          echo 'CMD ["python", "-c", "from main import lambda_handler; lambda_handler({}, {})"]' >> Dockerfile
-          docker build -t ${{ inputs.image_name }} .
+          cat > Dockerfile << EOF
+          FROM python:3.10-slim
+
+          # Install AWS Lambda Runtime Interface Client
+          RUN pip install awslambdaric
+
+          WORKDIR /app
+          COPY *.py ./
+
+          ENTRYPOINT ["python", "-m", "awslambdaric"]
+          CMD ["main.lambda_handler"]
+          EOF
+              docker build -t ${{ inputs.image_name }} .
 
       - name: Tag and Push Docker image to ECR
         if: ${{ inputs.push == 'true' }}
