@@ -124,7 +124,7 @@ jobs:
           echo "FROM python:3.10-slim" > Dockerfile
           echo "WORKDIR /app" >> Dockerfile
           echo "COPY . ." >> Dockerfile
-          echo "CMD [\"app.main.lambda_handler\"]" >> Dockerfile
+          echo "CMD [\"main.lambda_handler\"]" >> Dockerfile
           docker build -t ${{ inputs.image_name }} .
 
       - name: Tag and Push Docker image to ECR
